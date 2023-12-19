@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+#
+# SPDX-License-Identifier: AGPL-3.0
+
+# Global variables
+_globals() {
+  _path="$( \
+    export \
+      _OLDPWD="$(pwd)" && \
+    cd \
+      "$(dirname \
+           "${BASH_SOURCE[0]}")" && \
+    echo \
+      "$(pwd)" && \
+    cd \
+      "${_OLDPWD}" && \
+    unset \
+      _OLDPWD)"
+  unset \
+    _OLDPWD
+  app_name="$( \
+    basename \
+      "${BASH_SOURCE[0]}")"
+  TERMUX_PREFIX="/data/data/com.termux/files"
+  _bin="/system/bin"
+  _curl="${_bin}/curl"
+  _unzip="${_bin}/unzip"
+  _arch="arm"
+  _date="2023.12.10"
+  _dpath="${HOME}/storage/downloads"
+  _bs="bootstrap-${_arch}.zip"
+  _shell="$( \
+    ps \
+      -hp \
+      $$ | \
+      awk \
+        '{print $5}' || \
+    ps \
+      -p \
+      $$ | \
+      awk \
+        '{print $9}' | \
+	sed \
+	  '/NAME/d')"
+}
+
+# Error function
+# Display a message and exits
+# $1: message to display when the error occurs
+_msg_err() {
+  local \
+    _msg="${1}"
+  echo \
+    "${_msg}"
+  exit 1
+}
+
+# Download the bootstrap
+_get() {
+  local \
+    _github="https://github.com" \
+    _ns='termux-pacman' \
+    _pkg='termux-packages' \
+    _url
+  _url="${_github}/${_ns}/${_pkg}"
+  _dbasedir="${_url}/releases/download"
+  [[ ! -e "~/storage" ]] && \
+    termux-setup-storage
+  [[ -e "${_dpath}/${_bs}" ]] && \
+    return
+  cd \
+    "${_dpath}"
+  "${_curl}" \
+    -O \
+    "${_dbasedir}/bootstrap-${_date}-r1%2Bpacman-android-7/${_bs}"
+  [[ "$?" -eq 0 ]] && \
+    echo \
+      'check if wget is installed'
+  cd \
+    "${OLDPWD}"
+}
+
+# Unpacks the bootstrap, setup symlinks
+_prepare() {
+  [[ ! -e "${_dpath}/${_bs}" ]] && \
+    _get
+  [[ -e "${TERMUX_PREFIX}/pacman_lock" ]] && \
+    echo \
+      "run ${app_name} from a fail-safe session" && \
+    exit
+  [[ ! -e "${TERMUX_PREFIX}/pacman_lock" ]] && \
+    mkdir \
+      -p \
+      "${TERMUX_PREFIX}/pacman" && \
+    cd  \
+      "${TERMUX_PREFIX}/pacman" && \
+    "${_unzip}" \
+      "${_dpath}/${_bs}" && \
+    cat \
+      SYMLINKS.txt | \
+      awk \
+        -F "←" \
+        '{system("ln -s '"'"'"$1"'"'"' '"'"'"$2"'"'"'")}'
+    touch \
+      "${TERMUX_PREFIX}/pacman_lock"
+  cd \
+    "${OLDPWD}"
+}
+
+# Replace usr, to be run from failsafe session
+_install() {
+  [[ ! -e "${TERMUX_PREFIX}/pacman_lock" ]] && \
+    echo \
+      "run '${app_name}' from a normal session first" && \
+    exit
+  [[ "${_shell}" != "sh" ]] && \
+    echo \
+      'be sure to be running this from a fail-safe session' && \
+    exit
+  mv \
+    "${TERMUX_PREFIX}/usr" \
+    "${TERMUX_PREFIX}/apt"
+  mv \
+    "${TERMUX_PREFIX}/pacman" \
+    "${TERMUX_PREFIX}/usr"
+}
+
+_clean() {
+  rm \
+    -rf \
+    "${TERMUX_PREFIX}/apt" \
+    "${TERMUX_PREFIX}/pacman_lock"
+   
+}
+
+# auto procedure
+_auto() {
+  _get
+  _prepare
+  _install
+  _clean
+}
+
+_globals
+
+_action="${1}"
+
+[[ $# < 1 ]] && \
+  _action='auto' && \
+  echo "${_shell}"
+
+[[ "${_action}" == "--help" ]] && \
+[[ "${_action}" == "-h" ]] && \
+  echo \
+    "Usage: ${app_name} <action>\n" \
+    "actions: <prepare install clean>"
+
+"_${_action}"
