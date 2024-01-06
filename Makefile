@@ -19,7 +19,7 @@ install: install-scripts install-doc
 
 install-scripts:
 
-        install -vDm 755 termux-setup-pacman/termux-setup-pacman "$(BIN_DIR)/termux-setup-pacman"
+	install -vDm 755 termux-setup-pacman/termux-setup-pacman "$(BIN_DIR)/termux-setup-pacman"
 
 install-doc:
 
