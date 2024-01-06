@@ -23,6 +23,6 @@ install-scripts:
 
 install-doc:
 
-        install -vDm 644 $(DOC_FILES) -t $(DOC_DIR)
+	install -vDm 644 $(DOC_FILES) -t $(DOC_DIR)
 
 .PHONY: check install install-doc install-scripts shellcheck
