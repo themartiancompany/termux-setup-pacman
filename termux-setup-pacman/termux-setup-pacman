@@ -87,7 +87,7 @@ _get() {
     "${_url}"
   [[ "$?" -eq 0 ]] && \
     echo \
-      'check if wget is installed'
+      'check if ur internet connection is working'
   cd \
     "${OLDPWD}"
 }
@@ -121,20 +121,32 @@ _prepare() {
 
 # Replace usr, to be run from failsafe session
 _install() {
+  local \
+    _move_apt=() \
+    _move_pacman=() \
+    _sh
+  _sh="/system/bin/sh"
+  _move_apt=(
+    mv
+      "${TERMUX_PREFIX}/usr"
+      "${TERMUX_PREFIX}/apt"
+  )
+  _move_pacman=(
+    mv
+      "${TERMUX_PREFIX}/pacman"
+      "${TERMUX_PREFIX}/usr"
+  )
   [[ ! -e "${TERMUX_PREFIX}/pacman_lock" ]] && \
     echo \
       "run '${app_name}' from a normal session first" && \
     exit
-  [[ "${_shell}" != "sh" ]] && \
-    echo \
-      'be sure to be running this from a fail-safe session' && \
-    exit
-  mv \
-    "${TERMUX_PREFIX}/usr" \
-    "${TERMUX_PREFIX}/apt"
-  mv \
-    "${TERMUX_PREFIX}/pacman" \
-    "${TERMUX_PREFIX}/usr"
+  # [[ "${_shell}" != "sh" ]] && \
+  #   echo \
+  #     'be sure to be running this from a fail-safe session' && \
+  #   exit
+  "${_sh}" \
+    -c \
+    "${_move_apt[*]} && ${_move_pacman[*]}"
 }
 
 _clean() {
