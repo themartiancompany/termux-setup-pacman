@@ -63,14 +63,15 @@ _get() {
     _ns='termux-pacman' \
     _pkg='termux-packages' \
     _url \
-    _repo
+    _repo \
+    _ddirpath
   _curl_opts=(
     -L
     -O
   )
   _repo="${_github}/${_ns}/${_pkg}"
-  _dbasedir="${_url}/releases/download"
-  _url="${_dbasedir}/bootstrap-${_date}-r1%2Bpacman-android-7/${_bs}"
+  _ddirpath="${_repo}/releases/download"
+  _url="${_ddirpath}/bootstrap-${_date}-r1%2Bpacman-android-7/${_bs}"
   [ ! -d "${HOME}/storage" ] && \
     termux-setup-storage
   echo \
