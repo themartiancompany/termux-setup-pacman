@@ -58,12 +58,19 @@ _msg_err() {
 # Download the bootstrap
 _get() {
   local \
+    _curl_opts=()
     _github="https://github.com" \
     _ns='termux-pacman' \
     _pkg='termux-packages' \
-    _url
-  _url="${_github}/${_ns}/${_pkg}"
+    _url \
+    _repo
+  _curl_opts=(
+    -L
+    -O
+  )
+  _repo="${_github}/${_ns}/${_pkg}"
   _dbasedir="${_url}/releases/download"
+  _url="${_dbasedir}/bootstrap-${_date}-r1%2Bpacman-android-7/${_bs}"
   [ ! -d "${HOME}/storage" ] && \
     termux-setup-storage
   echo \
@@ -75,8 +82,8 @@ _get() {
   echo \
     "downloading bootstrap"
   "${_curl}" \
-    -O \
-    "${_dbasedir}/bootstrap-${_date}-r1%2Bpacman-android-7/${_bs}"
+    "${_curl_opts[@]}" \
+    "${_url}"
   [[ "$?" -eq 0 ]] && \
     echo \
       'check if wget is installed'
