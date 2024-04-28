@@ -165,12 +165,18 @@ _clean() {
     "${TERMUX_PREFIX}/pacman_lock"
 }
 
+_setup() {
+  pacman-key \
+    --init
+}
+
 # auto procedure
 _auto() {
   _get
   _prepare
   _install
   _clean
+  _setup
 }
 
 _globals
