@@ -64,7 +64,7 @@ _get() {
     _url
   _url="${_github}/${_ns}/${_pkg}"
   _dbasedir="${_url}/releases/download"
-  [ ! -d "~/storage" ] && \
+  [ ! -d "${HOME}/storage" ] && \
     termux-setup-storage
   [ -e "${_dpath}/${_bs}" ] && \
     return
