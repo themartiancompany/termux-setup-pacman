@@ -58,7 +58,7 @@ _msg_err() {
 # Download the bootstrap
 _get() {
   local \
-    _curl_opts=()
+    _curl_opts=() \
     _github="https://github.com" \
     _ns='termux-pacman' \
     _pkg='termux-packages' \
