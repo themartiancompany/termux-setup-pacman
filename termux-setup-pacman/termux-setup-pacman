@@ -25,6 +25,8 @@ _globals() {
   _bin="/system/bin"
   _curl="${_bin}/curl"
   _unzip="${_bin}/unzip"
+  _rm="${_bin}/rm"
+  _mv="${_bin}/mv"
   _arch="arm"
   _date="2024.04.28"
   _dpath="${HOME}/storage/downloads"
@@ -124,17 +126,24 @@ _install() {
   local \
     _move_apt=() \
     _move_pacman=() \
-    _sh
+    _move=()
+    _sh \
+    _rm
   _sh="/system/bin/sh"
   _move_apt=(
-    mv
+    "${_mv}"
       "${TERMUX_PREFIX}/usr"
       "${TERMUX_PREFIX}/apt"
   )
   _move_pacman=(
-    mv
+    "${_mv}"
       "${TERMUX_PREFIX}/pacman"
       "${TERMUX_PREFIX}/usr"
+  )
+  _move=(
+    "${_move_apt[@]}"
+    &&
+    "${_move_pacman[@]}"
   )
   [[ ! -e "${TERMUX_PREFIX}/pacman_lock" ]] && \
     echo \
@@ -146,7 +155,7 @@ _install() {
   #   exit
   "${_sh}" \
     -c \
-    "${_move_apt[*]} && ${_move_pacman[*]}"
+    "${_move[*]}"
 }
 
 _clean() {
