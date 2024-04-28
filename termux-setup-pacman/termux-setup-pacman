@@ -168,6 +168,10 @@ _clean() {
 _setup() {
   pacman-key \
     --init
+  pacman-key \
+    --populate
+  pacman \
+    -Sy
 }
 
 # auto procedure
