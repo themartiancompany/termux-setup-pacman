@@ -142,7 +142,7 @@ _install() {
   )
   _move=(
     "${_move_apt[@]}"
-    &&
+    '&&'
     "${_move_pacman[@]}"
   )
   [[ ! -e "${TERMUX_PREFIX}/pacman_lock" ]] && \
