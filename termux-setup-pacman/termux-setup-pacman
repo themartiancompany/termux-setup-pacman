@@ -26,7 +26,7 @@ _globals() {
   _curl="${_bin}/curl"
   _unzip="${_bin}/unzip"
   _arch="arm"
-  _date="2023.12.10"
+  _date="2024.04.28"
   _dpath="${HOME}/storage/downloads"
   _bs="bootstrap-${_arch}.zip"
   _shell="$( \
