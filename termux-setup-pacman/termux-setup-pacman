@@ -126,7 +126,7 @@ _install() {
   local \
     _move_apt=() \
     _move_pacman=() \
-    _move=()
+    _move=() \
     _sh \
     _rm
   _sh="/system/bin/sh"
