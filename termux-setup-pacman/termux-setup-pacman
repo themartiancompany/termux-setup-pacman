@@ -66,6 +66,8 @@ _get() {
   _dbasedir="${_url}/releases/download"
   [ ! -d "${HOME}/storage" ] && \
     termux-setup-storage
+  echo \
+    "${_dpath}/${_bs}"
   [ -e "${_dpath}/${_bs}" ] && \
     return
   cd \
