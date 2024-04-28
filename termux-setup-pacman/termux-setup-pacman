@@ -134,7 +134,6 @@ _clean() {
     -rf \
     "${TERMUX_PREFIX}/apt" \
     "${TERMUX_PREFIX}/pacman_lock"
-   
 }
 
 # auto procedure
