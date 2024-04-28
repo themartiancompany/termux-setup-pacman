@@ -70,6 +70,8 @@ _get() {
     return
   cd \
     "${_dpath}"
+  echo \
+    "downloading bootstrap"
   "${_curl}" \
     -O \
     "${_dbasedir}/bootstrap-${_date}-r1%2Bpacman-android-7/${_bs}"
