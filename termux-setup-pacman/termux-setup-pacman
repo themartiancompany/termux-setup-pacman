@@ -88,7 +88,7 @@ _get() {
   "${_curl}" \
     "${_curl_opts[@]}" \
     "${_url}"
-  [[ "$?" -eq 0 ]] && \
+  [[ ! "$?" -eq 0 ]] && \
     echo \
       'check if ur internet connection is working'
   cd \
