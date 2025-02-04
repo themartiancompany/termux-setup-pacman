@@ -76,6 +76,7 @@ _get() {
   _url="${_ddirpath}/bootstrap-${_date}-r1%2Bpacman-android-7/${_bs}"
   [ ! -d "${HOME}/storage" ] && \
     termux-setup-storage
+    sleep 10
   echo \
     "${_dpath}/${_bs}"
   [ -e "${_dpath}/${_bs}" ] && \
