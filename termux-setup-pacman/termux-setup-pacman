@@ -28,7 +28,7 @@ _globals() {
   _rm="${_bin}/rm"
   _mv="${_bin}/mv"
   _arch="arm"
-  _date="2024.04.28"
+  _date="2025.02.02"
   _dpath="${HOME}/storage/downloads"
   _bs="bootstrap-${_arch}.zip"
   _shell="$( \
