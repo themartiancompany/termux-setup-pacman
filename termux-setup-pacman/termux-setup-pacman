@@ -27,7 +27,9 @@ _globals() {
   _unzip="${_bin}/unzip"
   _rm="${_bin}/rm"
   _mv="${_bin}/mv"
-  _arch="arm"
+  _arch="$( \
+    uname \
+      -m)"
   _date="2025.02.02"
   _dpath="${HOME}/storage/downloads"
   _bs="bootstrap-${_arch}.zip"
@@ -95,10 +97,16 @@ _get() {
     "${OLDPWD}"
 }
 
+
+
 # Unpacks the bootstrap, setup symlinks
 _prepare() {
-  [[ ! -e "${_dpath}/${_bs}" ]] && \
+  if [[ ! -e "${_dpath}/${_bs}" ]]; then
     _get
+  elif [[ -e "${_dpath}/${_bs}" ]]; then
+    _integrity_check \
+      "${_dpath}/${_bs}"
+  fi
   [[ -e "${TERMUX_PREFIX}/pacman_lock" ]] && \
     echo \
       "run ${app_name} from a fail-safe session" && \
@@ -192,10 +200,19 @@ _action="${1}"
   _action='auto' && \
   echo "${_shell}"
 
-[[ "${_action}" == "--help" ]] && \
-[[ "${_action}" == "-h" ]] && \
-  echo \
+if [[ "${_action}" == "--help" ]] || \
+   [[ "${_action}" == "-h" ]]; then
+  _usage_text=(
     "Usage: ${app_name} <action>\n" \
-    "actions: <prepare install clean>"
+    ""
+    "actions:"
+    "  prepare"
+    "  install"
+    "  clean"
+    "  setup"
+  printf \
+    "%s\n" \
+    "${_usage_text[@]}"
+fi
 
 "_${_action}"
