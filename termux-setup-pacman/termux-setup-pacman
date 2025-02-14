@@ -27,9 +27,14 @@ _globals() {
   _unzip="${_bin}/unzip"
   _rm="${_bin}/rm"
   _mv="${_bin}/mv"
+  _unzip="${_bin}/unzip"
   _arch="$( \
     uname \
       -m)"
+  # TODO: Auto-fetch latest termux bootstrap
+  # version until Life and DogeOS
+  # continuous integration scripts
+  # are ready
   _date="2025.02.02"
   _dpath="${HOME}/storage/downloads"
   _bs="bootstrap-${_arch}.zip"
@@ -76,49 +81,85 @@ _get() {
   _repo="${_github}/${_ns}/${_pkg}"
   _ddirpath="${_repo}/releases/download"
   _url="${_ddirpath}/bootstrap-${_date}-r1%2Bpacman-android-7/${_bs}"
-  [ ! -d "${HOME}/storage" ] && \
+  if [ ! -d "${HOME}/storage" ]; then
     termux-setup-storage
-    sleep 10
-  echo \
-    "${_dpath}/${_bs}"
-  [ -e "${_dpath}/${_bs}" ] && \
-    return
+    # Timer to give users the time to authorize the Termux app
+    # to obtain storage permission.
+    sleep \
+      10
+    # TODO: directly get the permission if root is available
+  fi
   cd \
     "${_dpath}"
   echo \
-    "downloading bootstrap"
+    "Downloading bootstrap" \
+    "archive in '${_dpath}/${_bs}'."
   "${_curl}" \
     "${_curl_opts[@]}" \
     "${_url}"
   [[ ! "$?" -eq 0 ]] && \
     echo \
-      'check if ur internet connection is working'
+      'Check ur internet connection is' \
+      'correctly working.'
   cd \
     "${OLDPWD}"
 }
 
-
+_integrity_check() {
+  local \
+    _zip="${1}" \
+    _check_bad
+  if [[ ! -e "${_zip}" ]]; then
+    _bs_bad="true"
+  elif [[ -e "${_zip}" ]]; then
+    _check_bad="$( \
+      "${_unzip}" \
+        -t \
+        "${_zip}" \
+        2>&1)"
+    _msg_bad_start="unzip: couldn't open"
+    _msg_bad_end=": Invalid file"
+    if [[ "${_check_bad}" == \
+          "${_msg_bad_start}"*"${_msg_bad_end}" ]]; then
+      _bs_bad="true"
+    else
+      _bs_bad="false"
+    fi
+  fi
+}
 
 # Unpacks the bootstrap, setup symlinks
 _prepare() {
-  if [[ ! -e "${_dpath}/${_bs}" ]]; then
-    _get
-  elif [[ -e "${_dpath}/${_bs}" ]]; then
+  local \
+    _bs_bad
+  echo \
+    "Preparing resources" \
+    "for installation."
+  _bs_bad="true"
+  while true; do
     _integrity_check \
       "${_dpath}/${_bs}"
-  fi
-  [[ -e "${TERMUX_PREFIX}/pacman_lock" ]] && \
+    if [[ "${_bs_bad}" == "true" ]]; then
+      _get
+    elif [[ "${_bs_bad}" == "false" ]]; then
+      echo \
+        "Bootstrap archive correctly downloaded" \
+        "in '${_dpath}/${_bs}'."
+      break
+    fi
+  done
+  if [[ -e "${TERMUX_PREFIX}/pacman_lock" ]]; then
     echo \
-      "run ${app_name} from a fail-safe session" && \
+      "Run ${app_name} from a fail-safe session."
     exit
-  [[ ! -e "${TERMUX_PREFIX}/pacman_lock" ]] && \
+  elif [[ ! -e "${TERMUX_PREFIX}/pacman_lock" ]]; then
     mkdir \
       -p \
-      "${TERMUX_PREFIX}/pacman" && \
+      "${TERMUX_PREFIX}/pacman"
     cd  \
-      "${TERMUX_PREFIX}/pacman" && \
+      "${TERMUX_PREFIX}/pacman"
     "${_unzip}" \
-      "${_dpath}/${_bs}" && \
+      "${_dpath}/${_bs}"
     cat \
       SYMLINKS.txt | \
       awk \
@@ -126,6 +167,7 @@ _prepare() {
         '{system("ln -s '"'"'"$1"'"'"' '"'"'"$2"'"'"'")}'
     touch \
       "${TERMUX_PREFIX}/pacman_lock"
+  fi
   cd \
     "${OLDPWD}"
 }
@@ -137,7 +179,13 @@ _install() {
     _move_pacman=() \
     _move=() \
     _sh \
-    _rm
+    _rm \
+    _prepare_attempts_max \
+    _prepare_attempt
+  echo \
+    "Bootstrapping" \
+    "pre - Life / DogeOS Android" \
+    "environment."
   _sh="/system/bin/sh"
   _move_apt=(
     "${_mv}"
@@ -154,10 +202,19 @@ _install() {
     '&&'
     "${_move_pacman[@]}"
   )
-  [[ ! -e "${TERMUX_PREFIX}/pacman_lock" ]] && \
+  _prepare_attempts_max="300"
+  _prepare_attempt="0"
+  while \
+    [[ ! -e "${TERMUX_PREFIX}/pacman_lock" ]] && \
+    (( "${_prepare_attempt}" < "${_prepare_attempts_max}" )); do
+    _prepare_attempt="$(( \
+      _prepare_attempt + "1"))"
     echo \
-      "run '${app_name}' from a normal session first" && \
-    exit
+      "Pre - Life / DogeOS environment setup ready" \
+      "trigger found not found, running" \
+      "prepare procedure."
+    _prepare
+  done
   # [[ "${_shell}" != "sh" ]] && \
   #   echo \
   #     'be sure to be running this from a fail-safe session' && \
@@ -168,6 +225,9 @@ _install() {
 }
 
 _clean() {
+  echo \
+    "Uninstalling Debian-based" \
+    "Termux environment."
   rm \
     -rf \
     "${TERMUX_PREFIX}/apt" \
@@ -175,6 +235,10 @@ _clean() {
 }
 
 _setup() {
+  echo \
+    "Setting up base" \
+    "pre - Life / DogeOS software" \
+    "catalogues."
   pacman-key \
     --init
   pacman-key \
@@ -185,7 +249,8 @@ _setup() {
 
 # auto procedure
 _auto() {
-  _get
+  echo \
+    "Auto-install selected."
   _prepare
   _install
   _clean
