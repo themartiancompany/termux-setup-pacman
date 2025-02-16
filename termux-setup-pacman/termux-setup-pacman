@@ -279,6 +279,7 @@ if [[ "${_action}" == "--help" ]] || \
   printf \
     "%s\n" \
     "${_usage_text[@]}"
+else
+  "_${_action}"
 fi
 
-"_${_action}"
