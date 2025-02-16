@@ -275,6 +275,7 @@ if [[ "${_action}" == "--help" ]] || \
     "  install"
     "  clean"
     "  setup"
+  )
   printf \
     "%s\n" \
     "${_usage_text[@]}"
