@@ -19,28 +19,65 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+_PROJECT=termux-setup-pacman
 PREFIX ?= /usr/local
-DOC_DIR=$(DESTDIR)$(PREFIX)/share/doc/termux-setup-pacman
+DOC_DIR=$(DESTDIR)$(PREFIX)/share/doc/$(_PROJECT)
 BIN_DIR=$(DESTDIR)$(PREFIX)/bin
+MAN_DIR?=$(DESTDIR)$(PREFIX)/share/man
 
-DOC_FILES=$(wildcard *.rst)
-SCRIPT_FILES=$(wildcard termux-setup-pacman/*)
+DOC_FILES=\
+  $(wildcard \
+      *.rst)
+_BASH_FILES=\
+  "$(_PROJECT)"
+SCRIPT_FILES=\
+  $(wildcard \
+      $(_PROJECT)/*)
+
+_INSTALL_FILE=\
+  install \
+    -vDm644
+_INSTALL_DIR=\
+  install \
+    -vdm755
+_INSTALL_EXE=\
+  install \
+    -vDm755
 
 all:
 
 check: shellcheck
 
 shellcheck:
-	shellcheck -s bash $(SCRIPT_FILES)
 
-install: install-scripts install-doc
+	shellcheck \
+	  -s \
+	    bash \
+	  $(SCRIPT_FILES)
+
+install: install-scripts install-doc install-man
 
 install-scripts:
 
-	install -vDm 755 termux-setup-pacman/termux-setup-pacman "$(BIN_DIR)/termux-setup-pacman"
+	$(_INSTALL_EXE) \
+	  "$(_PROJECT)/$(_PROJECT)" \
+	  "$(BIN_DIR)/$(_PROJECT)"
 
 install-doc:
 
-	install -vDm 644 $(DOC_FILES) -t $(DOC_DIR)
+	$(_INSTALL_FILE) \
+	  $(DOC_FILES) \
+	  -t \
+	  $(DOC_DIR)
 
-.PHONY: check install install-doc install-scripts shellcheck
+install-man:
+
+	$(_INSTALL_DIR) \
+	  "$(MAN_DIR)/man1"
+	for _file in $(_BASH_FILES); do \
+	  rst2man \
+	    "man/$${_file}.1.rst" \
+	    "$(MAN_DIR)/man1/$${_file}.1"; \
+	done
+
+.PHONY: check install install-doc install-man install-scripts shellcheck
