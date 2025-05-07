@@ -41,12 +41,6 @@ _globals() {
     basename \
       "${BASH_SOURCE[0]}")"
   TERMUX_PREFIX="/data/data/com.termux/files"
-  _bin="/system/bin"
-  _curl="${_bin}/curl"
-  _unzip="${_bin}/unzip"
-  _rm="${_bin}/rm"
-  _mv="${_bin}/mv"
-  _unzip="${_bin}/unzip"
   _arch="$( \
     uname \
       -m)"
@@ -68,8 +62,99 @@ _globals() {
       $$ | \
       awk \
         '{print $9}' | \
-	sed \
-	  '/NAME/d')"
+        sed \
+          '/NAME/d')"
+}
+
+_android_command_get() {
+  local \
+    _command="${1}" \
+    _system_bin \
+    _msg=()
+  _system_bin="/system/bin"
+  _command_path="${_system_bin}/${_command}"
+  if [[ ! -e "${_command_path}" ]]; then
+    _msg=(
+      "Command '${_command_path}' does not exist."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+  echo \
+    "${_command_path}"
+}
+
+_check_cmd() {
+  local \
+    _command="${1}" \
+    _package="${2}" \
+    _command_path \
+    _msg=()
+  if [[ ! -e "${_command}" ]]; then
+    _command_path="$( \
+      command \
+        -v \
+        "${_command}")"
+   if [[ "${_command_path}" != "" ]]; then
+    _command="${_command_path}"
+   elif [[ "${_command_path}" == "" ]]; then
+     _msg=(
+       "Missing command '${_command}'."
+     )
+     _msg_error \
+       "${_msg[*]}" \
+       1
+   fi
+  fi
+}
+
+_global_variables() {
+  target_action=""
+  bootstrap_dir=""
+  quiet="y"
+}
+
+_requirements() {
+  local \
+    _os \
+    _msg=()
+  _os="$( \
+    uname \
+      -o)"
+  if [[ "${_os}" == "Android" ]]; then
+    _curl="$( \
+      _android_command_get \
+        "curl")"
+    _check_cmd \
+      "${_curl}"
+    _mv="$( \
+      _android_command_get \
+        "mv")"
+    _check_cmd \
+      "${_mv}"
+    _rm="$( \
+      _android_command_get \
+        "rm")"
+    _check_cmd \
+      "${_rm}"
+    _sh="$( \
+      _android_command_get \
+        "sh")"
+    _check_cmd \
+      "${_rm}"
+    _unzip="$( \
+      _android_command_get \
+        "unzip")"
+    _check_cmd \
+      "${_unzip}"
+  elif [[ "${_os}" != "Android" ]]; then
+    _msg=(
+      "This program must be run on Android."
+    )
+    _msg_error \
+      "${_msg[*]}"
+  fi
 }
 
 # Error function
@@ -80,7 +165,7 @@ _msg_error() {
     _msg="${1}" \
     _exit="${2}"
   echo \
-    "[termux-setup-pacman] ERROR: ${_msg}"
+    "[${app_name}] ERROR: ${_msg}"
   exit \
     "${_exit}"
 }
@@ -88,8 +173,10 @@ _msg_error() {
 _msg_info() {
   local \
     _msg="${1}"
-  echo \
-    "[termux-setup-pacman] [INFO]: ${_msg}"
+  if [[ "${quiet}" == "n" ]]; then
+    echo \
+      "[${app_name}] [INFO]: ${_msg}"
+  fi
 }
 
 # Download the bootstrap
@@ -101,7 +188,13 @@ _get() {
     _pkg='termux-packages' \
     _url \
     _repo \
-    _ddirpath
+    _ddirpath \
+    _msg=()
+  _msg=(
+    "Getting bootstrap."
+  )
+  _msg_info \
+    "${_msg[*]}"
   _curl_opts=(
     -L
     -O
@@ -110,6 +203,11 @@ _get() {
   _ddirpath="${_repo}/releases/download"
   _url="${_ddirpath}/bootstrap-${_date}-r1%2Bpacman-android-7/${_bs}"
   if [ ! -d "${HOME}/storage" ]; then
+    _msg=(
+      "Getting storage permission."
+    )
+    _msg_info \
+      "${_msg[*]}"
     termux-setup-storage
     # Timer to give users the time to authorize the Termux app
     # to obtain storage permission.
@@ -166,10 +264,14 @@ _integrity_check() {
 # Unpacks the bootstrap, setup symlinks
 _prepare() {
   local \
-    _bs_bad
-  echo \
-    "Preparing resources" \
+    _bs_bad \
+    _msg=()
+  _msg=(
+    "Preparing resources"
     "for installation."
+  )
+  _msg_info \
+    "${_msg[*]}"
   _bs_bad="true"
   while true; do
     _integrity_check \
@@ -177,16 +279,22 @@ _prepare() {
     if [[ "${_bs_bad}" == "true" ]]; then
       _get
     elif [[ "${_bs_bad}" == "false" ]]; then
-      echo \
-        "Bootstrap archive correctly downloaded" \
+      _msg=(
+        "Bootstrap archive correctly downloaded"
         "in '${_dpath}/${_bs}'."
+      )
+      _msg_info \
+        "${_msg[*]}"
       break
     fi
   done
   if [[ -e "${TERMUX_PREFIX}/pacman_lock" ]]; then
-    echo \
+    _msg=(
       "Run ${app_name} from a fail-safe session."
-    exit
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
   elif [[ ! -e "${TERMUX_PREFIX}/pacman_lock" ]]; then
     mkdir \
       -p \
@@ -216,11 +324,15 @@ _install() {
     _sh \
     _rm \
     _prepare_attempts_max \
-    _prepare_attempt
-  echo \
-    "Bootstrapping" \
-    "pre - Life / DogeOS Android" \
+    _prepare_attempt \
+    _msg=()
+  _msg=(
+    "Bootstrapping"
+    "pre - Life / DogeOS Android"
     "environment."
+  )
+  _msg_info \
+    "${_msg[*]}"
   _sh="/system/bin/sh"
   _move_apt=(
     "${_mv}"
@@ -282,6 +394,59 @@ _setup() {
     -Sy
 }
 
+_termux_setup_pacman() {
+  local \
+    _action="${1}" \
+    _os \
+    _msg=()
+  _os="$( \
+    uname \
+      -o)"
+  if [[ "${_os}" != "Android" ]]; then
+    _msg=(
+      "This script is supposed to"
+      "be run from Android."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+  "_${_action}"
+}
+
+_bootstrap_dir_auto_detect() {
+  local \
+    _bootstrap_dir
+  _bootstrap_dir="${HOME}/.cache/${app_name}"
+  if [[ "${bootstrap_dir}" == "" ]]; then
+    bootstrap_dir="${_bootstrap_dir}"
+    if [[ ! -d "${_bootstrap_dir}" ]]; then
+      mkdir \
+        -p \
+	"${_bootstrap_dir}"
+      chmod \
+        700 \
+	"${_bootstrap_dir}"
+    fi
+  fi
+}
+
+_set_overrides() {
+  local \
+    _msg=()
+  if [[ -v override_color ]]; then
+    color="${override_color}"
+  elif [[ -z "${color}" ]]; then
+    color="n"
+  fi
+  if [[ -v override_quiet ]]; then
+    quiet="${override_quiet}"
+  elif [[ -z "${quiet}" ]]; then
+    quiet="y"
+  fi
+  _bootstrap_dir_auto_detect
+}
+
 # auto procedure
 _auto() {
   echo \
@@ -292,31 +457,101 @@ _auto() {
   _setup
 }
 
-_globals
+_usage() {
+  local \
+    _usage_text
+  IFS='' \
+    read \
+      -r \
+      -d '' \
+      _usage_text << \
+        ENDUSAGETEXT || true
+Fallback User Repository.
 
-_action="${1}"
+Usage:
 
-[[ $# < 1 ]] && \
-  _action='auto' && \
-  echo "${_shell}"
+  ${app_name}
+    [options]
+    [packages]
 
-if [[ "${_action}" == "--help" ]] || \
-   [[ "${_action}" == "-h" ]]; then
-  _usage_text=(
-    "Usage:"
-    ""
-    "${app_name} <action>" \
-    ""
-    "actions:"
-    "  prepare"
-    "  install"
-    "  clean"
-    "  setup"
-  )
+  options:
+     -p <package_manager>   Package manager.
+                            Default: ${package_manager}
+     -d                     Download only (noinstall).
+                            Default: ${download_only}
+     -w <repo_dir>          Directory containing the fur tree.
+                            To be set when download only is true,
+                            otherwise is temporary.
+                            Default: ${repo_dir}
+     -K <sig_dir>           Signatures keys directory.
+                            Default: ${sig_dir}
+     -P <platform>          Platform for which to retrieve packages,
+                            can be 'arch' or 'termux'.
+                            Default: ${target_platform}
+     -A <architecture>      Architecture for which to retrieve packages,
+                            can be 'any', 'arm' or 'x86_64'.
+                            Default: ${target_arch}
+     -m <mirror>            Fur mirror, can be 'github' or
+                            'gitlab'.
+                            Default: ${target_mirror}
+     -o <output_dir>        Output directory.
+                            Default: ${output_dir}
+
+     -c                     Colors.
+     -h                     This message.
+     -v                     Enable verbose output
+ENDUSAGETEXT
   printf \
-    "%s\n" \
-    "${_usage_text[@]}"
-else
-  "_${_action}"
-fi
+    '%s\n' \
+    "${_usage_text}"
+  exit \
+    "${1}"
+}
 
+# Shows configuration options.
+_show_config() {
+  _msg_info "${app_name} configuration"
+  _msg_info "            Target action:   ${target_action}"
+  _msg_info "      Bootstrap directory:   ${bootstrap_dir}"
+}
+
+_globals
+_global_variables
+while \
+  getopts \
+    'd:vh?' \
+    arg; do
+  case \
+    "${arg}" in
+    d) bootstrap_dir="${OPTARG}" ;;
+    v) quiet="n" ;;
+    h|?) _set_overrides && \
+         _usage \
+           0 ;;
+    *)
+    _msg_error \
+      "Invalid argument '${arg}'." \
+      0 && \
+    _set_overrides && \
+    _usage \
+      1
+    ;;
+  esac
+done
+shift \
+  "$(( \
+    OPTIND - 1 \
+  ))"
+target_action="${1}"
+if (( "$#" < 1 )); then
+  target_action="auto"
+  _msg_info \
+    "Using shell '${_shell}'."
+fi
+_set_overrides
+_show_config
+app_opts=(
+  "${target_action}"
+)
+_termux_setup_pacman
+  "${app_opts[@]}"
