@@ -75,12 +75,21 @@ _globals() {
 # Error function
 # Display a message and exits
 # $1: message to display when the error occurs
-_msg_err() {
+_msg_error() {
+  local \
+    _msg="${1}" \
+    _exit="${2}"
+  echo \
+    "[termux-setup-pacman] ERROR: ${_msg}"
+  exit \
+    "${_exit}"
+}
+
+_msg_info() {
   local \
     _msg="${1}"
   echo \
-    "${_msg}"
-  exit 1
+    "[termux-setup-pacman] [INFO]: ${_msg}"
 }
 
 # Download the bootstrap
@@ -110,16 +119,23 @@ _get() {
   fi
   cd \
     "${_dpath}"
-  echo \
-    "Downloading bootstrap" \
+  _msg=(
+    "Downloading bootstrap"
     "archive in '${_dpath}/${_bs}'."
+  )
+  _msg_info \
+    "${_msg[*]}"
   "${_curl}" \
     "${_curl_opts[@]}" \
     "${_url}"
   [[ ! "$?" -eq 0 ]] && \
-    echo \
+    _msg=(
       'Check ur internet connection is' \
       'correctly working.'
+
+    )
+    _msg_info \
+      "${_msg[*]}"
   cd \
     "${OLDPWD}"
 }
@@ -287,7 +303,9 @@ _action="${1}"
 if [[ "${_action}" == "--help" ]] || \
    [[ "${_action}" == "-h" ]]; then
   _usage_text=(
-    "Usage: ${app_name} <action>\n" \
+    "Usage:"
+    ""
+    "${app_name} <action>" \
     ""
     "actions:"
     "  prepare"
