@@ -180,16 +180,20 @@ _msg_info() {
 }
 
 # Download the bootstrap
-_get() {
+_bootstrap_get() {
   local \
     _curl_opts=() \
+    _http \
     _github="https://github.com" \
     _ns='termux-pacman' \
     _pkg='termux-packages' \
     _url \
-    _repo \
+    _repo_url \
     _ddirpath \
+    _android_version_min \
+    _bootstrap_platform \
     _msg=()
+  _android_version_min="7"
   _msg=(
     "Getting bootstrap."
   )
@@ -199,9 +203,15 @@ _get() {
     -L
     -O
   )
-  _repo="${_github}/${_ns}/${_pkg}"
-  _ddirpath="${_repo}/releases/download"
-  _url="${_ddirpath}/bootstrap-${_date}-r1%2Bpacman-android-7/${_bs}"
+  _bs="${_bootstrap_filename}"
+  _http="${_github}"
+  _repo_url="${_http}/${_ns}/${_pkg}"
+  _ddirpath="${_repo_url}/releases/download"
+  _server_download_dir="${_repo_url}/releases/download"
+  _bootstrap_platform="r1%2Bpacman-android-${_android_version_min}"
+  _bootstrap_dir_name="bootstrap-${_date}-${_bootstrap_platform}"
+  _server_bootstrap_dir="${_server_download_dir}/${_bootstrap_dir_name}"
+  _url="${_server_bootstrap_dir}/${_bootstrap_filename}"
   if [ ! -d "${HOME}/storage" ]; then
     _msg=(
       "Getting storage permission."
@@ -230,7 +240,6 @@ _get() {
     _msg=(
       'Check ur internet connection is' \
       'correctly working.'
-
     )
     _msg_info \
       "${_msg[*]}"
@@ -244,6 +253,7 @@ _integrity_check() {
     _check_bad
   if [[ ! -e "${_zip}" ]]; then
     _bs_bad="true"
+    _check_flag="false"
   elif [[ -e "${_zip}" ]]; then
     _check_bad="$( \
       "${_unzip}" \
@@ -255,33 +265,44 @@ _integrity_check() {
     if [[ "${_check_bad}" == \
           "${_msg_bad_start}"*"${_msg_bad_end}" ]]; then
       _bs_bad="true"
+      _check_flag="false"
     else
       _bs_bad="false"
+      _check_flag="true"
     fi
   fi
 }
 
 # Unpacks the bootstrap, setup symlinks
-_prepare() {
+_bootstrap_prepare() {
   local \
+    _bootstrap_dir="${1}" \
     _bs_bad \
-    _msg=()
+    _msg=() \
+    _bootstrap_path \
+    _bootstrap_filename
+  _bootstrap_filename="bootstrap-${_arch}.zip"
+  _bootstrap_path="${_bootstrap_dir}/${_bootstrap_filename}"
   _msg=(
-    "Preparing resources"
+    "Preparing bootstrap"
+    "'${_bootstrap_path}'"
     "for installation."
   )
   _msg_info \
     "${_msg[*]}"
   _bs_bad="true"
+  _check_flag="false"
   while true; do
     _integrity_check \
-      "${_dpath}/${_bs}"
+      "${_bootstrap_path}"
+    # if [[ "${_check_flag}" == "false" ]]; then
     if [[ "${_bs_bad}" == "true" ]]; then
-      _get
+      _bootstrap_get
+    # if [[ "${_check_flag}" == "true" ]]; then
     elif [[ "${_bs_bad}" == "false" ]]; then
       _msg=(
         "Bootstrap archive correctly downloaded"
-        "in '${_dpath}/${_bs}'."
+        "in '${_bootstrap_path}'."
       )
       _msg_info \
         "${_msg[*]}"
@@ -302,11 +323,12 @@ _prepare() {
     cd  \
       "${TERMUX_PREFIX}/pacman"
     "${_unzip}" \
-      "${_dpath}/${_bs}"
+      "${_bootstrap_path}"
     cat \
-      SYMLINKS.txt | \
+      "SYMLINKS.txt" | \
       awk \
-        -F "←" \
+        -F \
+	  "←" \
         '{system("ln -s '"'"'"$1"'"'"' '"'"'"$2"'"'"'")}'
     touch \
       "${TERMUX_PREFIX}/pacman_lock"
@@ -316,16 +338,16 @@ _prepare() {
 }
 
 # Replace usr, to be run from failsafe session
-_install() {
+_bootstrap_install() {
   local \
     _move_apt=() \
     _move_pacman=() \
     _move=() \
-    _sh \
-    _rm \
     _prepare_attempts_max \
     _prepare_attempt \
     _msg=()
+    # _sh \
+    # _rm
   _msg=(
     "Bootstrapping"
     "pre - Life / DogeOS Android"
@@ -333,7 +355,6 @@ _install() {
   )
   _msg_info \
     "${_msg[*]}"
-  _sh="/system/bin/sh"
   _move_apt=(
     "${_mv}"
       "${TERMUX_PREFIX}/usr"
@@ -356,11 +377,14 @@ _install() {
     (( "${_prepare_attempt}" < "${_prepare_attempts_max}" )); do
     _prepare_attempt="$(( \
       _prepare_attempt + "1"))"
-    echo \
-      "Pre - Life / DogeOS environment setup ready" \
-      "trigger found not found, running" \
-      "prepare procedure."
-    _prepare
+    _msg=(
+      "Pre - Life / DogeOS environment setup ready"
+      "trigger found not found, running"
+      "'prepare' procedure."
+    )
+    _msg_info \
+      "${_msg[*]}"
+    _bootstrap_prepare
   done
   # [[ "${_shell}" != "sh" ]] && \
   #   echo \
@@ -371,21 +395,31 @@ _install() {
     "${_move[*]}"
 }
 
-_clean() {
-  echo \
-    "Uninstalling Debian-based" \
+_bootstrap_clean() {
+  local \
+    _msg=()
+  _msg=(
+    "Uninstalling Debian-based"
     "Termux environment."
+  )
+  _msg_info \
+    "${_msg[*]}"
   rm \
     -rf \
     "${TERMUX_PREFIX}/apt" \
     "${TERMUX_PREFIX}/pacman_lock"
 }
 
-_setup() {
-  echo \
-    "Setting up base" \
-    "pre - Life / DogeOS software" \
+_bootstrap_setup() {
+  local \
+    _msg=()
+  _msg=(
+    "Setting up base"
+    "pre - Life / DogeOS software"
     "catalogues."
+  )
+  _msg_info \
+    "${_msg[*]}"
   pacman-key \
     --init
   pacman-key \
@@ -396,7 +430,8 @@ _setup() {
 
 _termux_setup_pacman() {
   local \
-    _action="${1}" \
+    _target_action="${1}" \
+    _bootstrap_dir="${2}" \
     _os \
     _msg=()
   _os="$( \
@@ -411,7 +446,18 @@ _termux_setup_pacman() {
       "${_msg[*]}" \
       1
   fi
-  "_${_action}"
+  if [[ "${_target_action}" == "auto" ]]; then
+    _bootstrap_auto
+  elif [[ "${_target_action}" == "get" ]]; then
+    _bootstrap_get \
+      "${_bootstrap_dir}"
+  elif [[ "${_target_action}" == "prepare" ]]; then
+    _bootstrap_prepare
+  elif [[ "${_target_action}" == "clean" ]]; then
+    _bootstrap_clean
+  elif [[ "${_target_action}" == "setup" ]]; then
+    _bootstrap_setup
+  fi
 }
 
 _bootstrap_dir_auto_detect() {
@@ -448,13 +494,18 @@ _set_overrides() {
 }
 
 # auto procedure
-_auto() {
-  echo \
+_bootstrap_auto() {
+  local \
+    _msg=()
+  _msg=(
     "Auto-install selected."
-  _prepare
-  _install
-  _clean
-  _setup
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _bootstrap_prepare
+  _bootstrap_install
+  _bootstrap_clean
+  _bootstrap_setup
 }
 
 _usage() {
@@ -552,6 +603,7 @@ _set_overrides
 _show_config
 app_opts=(
   "${target_action}"
+  "${bootstrap_dir}"
 )
 _termux_setup_pacman
   "${app_opts[@]}"
