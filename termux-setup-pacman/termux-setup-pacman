@@ -605,5 +605,5 @@ app_opts=(
   "${target_action}"
   "${bootstrap_dir}"
 )
-_termux_setup_pacman
+_termux_setup_pacman \
   "${app_opts[@]}"
